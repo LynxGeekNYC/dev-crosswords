@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Software Engineer Words Crossword</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --ink: #e5e7eb;
+      --muted: #9ca3af;
+      --accent: #60a5fa;
+      --good: #34d399;
+      --bad: #f87171;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background: radial-gradient(1000px 600px at 10% -10%, #1f2937 0, transparent 60%), var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    .app {
+      width: 100%; max-width: 1100px;
+    }
+    header {
+      display: grid; gap: 10px; grid-template-columns: 1fr; margin-bottom: 14px;
+    }
+    @media (min-width: 860px) {
+      header { grid-template-columns: 1fr auto; align-items: end; }
+    }
+    .title {
+      font-size: clamp(22px, 3.2vw, 36px);
+      font-weight: 800; letter-spacing: 0.3px;
+    }
+    .panel {
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 18px; padding: 14px; 
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+    .controls { display: grid; gap: 10px; grid-template-columns: 1fr; }
+    @media (min-width: 520px) { .controls { grid-template-columns: 1fr 1fr auto auto; } }
+    label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 6px; }
+    select, button {
+      width: 100%;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: #0b1220; color: var(--ink);
+      padding: 10px 12px; border-radius: 12px; font-size: 15px;
+    }
+    button { cursor: pointer; transition: transform .06s ease, background .2s ease; }
+    button:hover { transform: translateY(-1px); }
+    button.primary { background: linear-gradient(180deg, #1d4ed8, #1e40af); border-color: #1e3a8a; }
+    button.ghost { background: #0b1220; }
+
+    .main {
+      display: grid; gap: 14px; grid-template-columns: 1fr; margin-top: 12px;
+    }
+    @media (min-width: 900px) { .main { grid-template-columns: 1fr 360px; } }
+
+    .grid-wrap { display: flex; justify-content: center; }
+    .grid { 
+      display: grid; gap: 2px; 
+      background: #0b1220; padding: 8px; border-radius: 16px; 
+      border: 1px solid rgba(255,255,255,0.08);
+      touch-action: manipulation;
+    }
+    .cell { position: relative; width: 32px; height: 32px; }
+    @media (min-width: 480px) { .cell { width: 36px; height: 36px; } }
+    @media (min-width: 1024px) { .cell { width: 40px; height: 40px; } }
+
+    .cell input {
+      width: 100%; height: 100%; border: 0; outline: none; text-transform: uppercase;
+      text-align: center; font-weight: 700; font-size: 16px; color: var(--ink);
+      background: #0f172a; border-radius: 8px; caret-color: var(--accent);
+    }
+    .cell.block { background: transparent; }
+    .cell.block::after { content: ""; position: absolute; inset: 0; border-radius: 8px; background: #0b1220; opacity: 0.6; }
+
+    .num { position: absolute; top: 2px; left: 4px; font-size: 10px; color: var(--muted); pointer-events: none; }
+
+    .aside h3 { margin: 8px 0; font-size: 16px; color: var(--muted);}    
+    .clues { display: grid; gap: 12px; grid-template-columns: 1fr; }
+    .clues-group { }
+    .clues-group h4 { margin: 0 0 8px 0; color: var(--ink); }
+    .clues-group ol { margin: 0; padding-left: 18px; }
+    .clues-group li { margin: 6px 0; line-height: 1.4; }
+    .pill { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 999px; background: rgba(255,255,255,0.06); color: var(--muted); margin-left: 6px; }
+
+    .legend { color: var(--muted); font-size: 12px; margin-top: 8px; }
+    .status { margin-top: 10px; min-height: 22px; font-size: 14px; }
+
+    .footer-note { text-align: center; color: var(--muted); font-size: 12px; margin-top: 14px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div>
+        <div class="title">🧩 Software Engineer Words Crossword</div>
+        <div class="legend">Pick a category and build a fresh puzzle. Tap/click a cell and type. Use arrow keys to move.</div>
+      </div>
+      <div class="panel">
+        <div class="controls">
+          <div>
+            <label for="category">Category</label>
+            <select id="category">
+              <option value="python">Python</option>
+              <option value="cpp">C++</option>
+              <option value="php">PHP</option>
+              <option value="javascript">JavaScript</option>
+              <option value="mix">Mix (All)</option>
+            </select>
+          </div>
+          <div>
+            <label for="size">Grid Size</label>
+            <select id="size">
+              <option value="11">11 × 11</option>
+              <option value="13" selected>13 × 13</option>
+              <option value="15">15 × 15</option>
+            </select>
+          </div>
+          <button class="primary" id="newBtn">New Puzzle</button>
+          <button class="ghost" id="clearBtn">Clear</button>
+        </div>
+      </div>
+    </header>
+
+    <section class="main">
+      <div class="grid-wrap">
+        <div id="grid" class="grid" aria-label="crossword grid" role="grid"></div>
+      </div>
+      <aside class="aside panel">
+        <h3>Clues <span id="catPill" class="pill">Python</span></h3>
+        <div class="clues">
+          <div class="clues-group">
+            <h4>Across</h4>
+            <ol id="across"></ol>
+          </div>
+          <div class="clues-group">
+            <h4>Down</h4>
+            <ol id="down"></ol>
+          </div>
+        </div>
+        <div class="status" id="status"></div>
+        <div class="controls" style="margin-top:8px; grid-template-columns: 1fr 1fr;">
+          <button id="checkBtn">Check</button>
+          <button id="revealBtn">Reveal Mistakes</button>
+        </div>
+        <div class="footer-note">Mobile-friendly • Works offline • No tracking</div>
+      </aside>
+    </section>
+  </div>
+
+  <script>
+    /**********************
+     * Word banks & clues *
+     **********************/
+    const BANK = {
+      python: [
+        ["list", "Mutable sequence type"],
+        ["tuple", "Immutable ordered collection"],
+        ["dict", "Key→value mapping"],
+        ["decorator", "@ syntax function wrapper"],
+        ["generator", "Uses yield to produce values lazily"],
+        ["async", "Keyword for coroutines"],
+        ["indentation", "Significant whitespace for blocks"],
+        ["pep", "Python Enhancement Proposal (abbr.)"],
+        ["gil", "Interpreter lock (abbr.)"],
+        ["venv", "Built-in virtual env module"],
+        ["pip", "Package installer"],
+        ["pytest", "Popular testing framework"],
+        ["lambda", "Anonymous function keyword"],
+      ],
+      cpp: [
+        ["template", "Generic programming feature"],
+        ["pointer", "Stores a memory address"],
+        ["reference", "Alias to an object (not null)"],
+        ["namespace", "Avoids name collisions"],
+        ["raii", "Resource management idiom (abbr.)"],
+        ["virtual", "Enables dynamic dispatch"],
+        ["inheritance", "Acquiring base class members"],
+        ["friend", "Gives access to private members"],
+        ["constexpr", "Evaluated at compile time"],
+        ["operator", "Overloadable function like + or []"],
+        ["std", "Common library namespace (abbr.)"],
+        ["variant", "Type-safe union in <variant>"],
+      ],
+      php: [
+        ["composer", "Dependency manager for PHP"],
+        ["laravel", "Popular MVC framework"],
+        ["symfony", "Reusable components & framework"],
+        ["trait", "Horizontal code reuse unit"],
+        ["pdo", "Database access abstraction (abbr.)"],
+        ["apache", "Common HTTP server with PHP"],
+        ["zend", "Engine that powers PHP core"],
+        ["include", "Bring another file into scope"],
+        ["echo", "Basic output statement"],
+        ["array", "Ordered map type in PHP"],
+        ["ini", "Config file format used by PHP"],
+      ],
+      javascript: [
+        ["closure", "Function + its lexical env"],
+        ["promise", "Represents a future value"],
+        ["await", "Pauses inside async function"],
+        ["callback", "A function passed as an argument"],
+        ["prototype", "Object used for inheritance lookup"],
+        ["hoisting", "Moves declarations to the top"],
+        ["eventloop", "Runs tasks & microtasks"],
+        ["react", "Popular UI library"],
+        ["node", "JavaScript runtime on servers"],
+        ["webpack", "Module bundler"],
+        ["typescript", "Typed superset of JS"],
+      ]
+    };
+
+    function mixBank() {
+      const all = [...BANK.python, ...BANK.cpp, ...BANK.php, ...BANK.javascript];
+      // Shuffle and take a reasonable subset so the grid isn't overcrowded
+      const out = shuffle(all).slice(0, 18);
+      return out;
+    }
+
+    /****************
+     * Grid engine  *
+     ****************/
+    const state = {
+      size: 13,
+      grid: [],   // 2D array of { ch, block, num }
+      placedWords: [], // { word, clue, r, c, dir, num }
+      answers: [], // mirrors grid letters
+    };
+
+    function initGrid(n) {
+      state.size = n;
+      state.grid = Array.from({ length: n }, () => Array.from({ length: n }, () => ({ ch: "", block: true, num: 0 })));
+      state.placedWords = [];
+      state.answers = Array.from({ length: n }, () => Array.from({ length: n }, () => ""));
+    }
+
+    function cloneGrid(g) { return g.map(row => row.map(cell => ({...cell}))); }
+
+    function placeWords(wordPairs) {
+      const grid = state.grid;
+      const size = state.size;
+
+      // Sort words longest-first to help crossings
+      const words = [...wordPairs].map(([w, clue]) => [w.toLowerCase().replace(/[^a-z0-9]/g, ''), clue]).filter(([w]) => w.length >= 2);
+      words.sort((a,b) => b[0].length - a[0].length);
+
+      const placed = [];
+
+      function canPlace(word, r, c, dir) {
+        const dr = dir === 'across' ? 0 : 1;
+        const dc = dir === 'across' ? 1 : 0;
+        // Bounds
+        if (r < 0 || c < 0) return false;
+        const rr = r + dr * (word.length - 1);
+        const cc = c + dc * (word.length - 1);
+        if (rr >= size || cc >= size) return false;
+
+        for (let i=0;i<word.length;i++) {
+          const y = r + dr*i, x = c + dc*i;
+          const cell = grid[y][x];
+          // Adjacent rule: ensure neighbors perpendicular are either blocks or empty when not a crossing
+          if (cell.block === false && cell.ch !== word[i]) return false;
+          // Check adjacent before and after
+          if (dir === 'across') {
+            // Above/below shouldn't contain letters unless this is the same crossing
+            if (y>0 && grid[y-1][x].block===false && grid[y-1][x].ch && grid[y][x].ch !== word[i]) return false;
+            if (y<size-1 && grid[y+1][x].block===false && grid[y+1][x].ch && grid[y][x].ch !== word[i]) return false;
+          } else {
+            if (x>0 && grid[y][x-1].block===false && grid[y][x-1].ch && grid[y][x].ch !== word[i]) return false;
+            if (x<size-1 && grid[y][x+1].block===false && grid[y][x+1].ch && grid[y][x].ch && grid[y][x].ch !== word[i]) return false;
+          }
+        }
+        // Before and after must be blocked (bounds OK)
+        const by = r - dr, bx = c - dc;
+        if (by>=0 && bx>=0 && by<size && bx<size && grid[by][bx].block===false && grid[by][bx].ch) return false;
+        const ay = r + dr*word.length, ax = c + dc*word.length;
+        if (ay>=0 && ax>=0 && ay<size && ax<size && grid[ay][ax].block===false && grid[ay][ax].ch) return false;
+        return true;
+      }
+
+      function commit(word, clue, r, c, dir) {
+        const dr = dir === 'across' ? 0 : 1;
+        const dc = dir === 'across' ? 1 : 0;
+        for (let i=0;i<word.length;i++) {
+          const y = r + dr*i, x = c + dc*i;
+          grid[y][x].block = false;
+          grid[y][x].ch = word[i];
+        }
+        placed.push({word, clue, r, c, dir});
+      }
+
+      // First word: center-ish horizontally
+      if (words.length) {
+        const [w, clue] = words.shift();
+        const row = Math.floor(size/2);
+        const col = Math.max(0, Math.floor((size - w.length)/2));
+        commit(w, clue, row, col, 'across');
+      }
+
+      // Try to place the rest by crossing existing letters
+      for (const [w, clue] of words) {
+        let placedWord = false;
+        // Try both orientations with crossings
+        const orientations = Math.random() < 0.5 ? ['down','across'] : ['across','down'];
+        for (const dir of orientations) {
+          outer: for (let y=0; y<size; y++) {
+            for (let x=0; x<size; x++) {
+              const cell = grid[y][x];
+              if (cell.block===false && cell.ch) {
+                const idx = w.indexOf(cell.ch);
+                if (idx !== -1) {
+                  const r = dir==='across' ? y : y-idx;
+                  const c = dir==='across' ? x-idx : x;
+                  if (canPlace(w, r, c, dir)) {
+                    commit(w, clue, r, c, dir);
+                    placedWord = true; break outer;
+                  }
+                }
+              }
+            }
+          }
+          if (placedWord) break;
+        }
+        // If crossing failed, try to brute-place in empty rows/cols
+        if (!placedWord) {
+          for (const dir of ['across','down']) {
+            let found = false;
+            if (dir==='across') {
+              for (let y=0;y<size;y++) {
+                for (let x=0;x<size;x++) {
+                  if (canPlace(w, y, x, dir)) { commit(w, clue, y, x, dir); found = true; break; }
+                }
+                if (found) break;
+              }
+            } else {
+              for (let x=0;x<size;x++) {
+                for (let y=0;y<size;y++) {
+                  if (canPlace(w, y, x, dir)) { commit(w, clue, y, x, dir); found = true; break; }
+                }
+                if (found) break;
+              }
+            }
+            if (found) break;
+          }
+        }
+      }
+
+      // Number the placed entries (crossword style)
+      let num = 1;
+      const starts = new Map(); // key r,c ↦ num
+      for (const entry of placed) {
+        const { word, r, c, dir } = entry;
+        if (dir==='across') {
+          // Start if at left edge or block to left
+          if (c===0 || state.grid[r][c-1].block!==false) {
+            entry.num = num; starts.set(`${r},${c}`, num++);
+          } else {
+            // find true start for across
+            let cc = c; while (cc>0 && state.grid[r][cc-1].block===false) cc--;
+            const key = `${r},${cc}`; if (!starts.has(key)) starts.set(key, num++);
+            entry.num = starts.get(key);
+          }
+        } else {
+          if (r===0 || state.grid[r-1][c].block!==false) {
+            entry.num = num; starts.set(`${r},${c}`, num++);
+          } else {
+            let rr = r; while (rr>0 && state.grid[rr-1][c].block===false) rr--;
+            const key = `${rr},${c}`; if (!starts.has(key)) starts.set(key, num++);
+            entry.num = starts.get(key);
+          }
+        }
+      }
+
+      state.placedWords = placed;
+    }
+
+    /****************
+     * UI rendering  *
+     ****************/
+    const gridEl = document.getElementById('grid');
+    const acrossEl = document.getElementById('across');
+    const downEl = document.getElementById('down');
+    const catPill = document.getElementById('catPill');
+    const statusEl = document.getElementById('status');
+
+    function renderGrid() {
+      gridEl.style.gridTemplateColumns = `repeat(${state.size}, 1fr)`;
+      gridEl.innerHTML = '';
+
+      const numbered = new Map();
+      for (const e of state.placedWords) numbered.set(`${e.r},${e.c},${e.dir}`, e.num);
+
+      for (let r=0;r<state.size;r++) {
+        for (let c=0;c<state.size;c++) {
+          const cell = state.grid[r][c];
+          const div = document.createElement('div');
+          div.className = 'cell' + (cell.block? ' block' : '');
+
+          if (!cell.block) {
+            const input = document.createElement('input');
+            input.maxLength = 1;
+            input.dataset.r = r; input.dataset.c = c;
+            input.value = '';
+            input.addEventListener('input', onType);
+            input.addEventListener('keydown', onKey);
+            div.appendChild(input);
+
+            // number if this is a start of any entry
+            let hasNumber = false;
+            // Across start
+            if (c===0 || state.grid[r][c-1].block!==false) {
+              if (c+1 < state.size && state.grid[r][c+1].block===false) hasNumber = true;
+            }
+            // Down start
+            if (r===0 || state.grid[r-1][c].block!==false) {
+              if (r+1 < state.size && state.grid[r+1][c].block===false) hasNumber = true;
+            }
+            if (hasNumber) {
+              const num = getNumberAt(r,c);
+              if (num) {
+                const small = document.createElement('div'); small.className='num'; small.textContent = num; div.appendChild(small);
+              }
+            }
+          }
+          gridEl.appendChild(div);
+        }
+      }
+    }
+
+    function getNumberAt(r,c){
+      // find entries that start here
+      let min = Infinity;
+      for (const e of state.placedWords) {
+        if ((e.r===r && e.c===c) || (e.dir==='across' && e.r===r && c>=e.c && c<e.c+e.word.length && (c===e.c)) || (e.dir==='down' && e.c===c && r>=e.r && r<e.r+e.word.length && (r===e.r))) {
+          if (e.num && e.num<min) min = e.num;
+        }
+      }
+      return Number.isFinite(min) ? min : 0;
+    }
+
+    function renderClues() {
+      acrossEl.innerHTML = '';
+      downEl.innerHTML = '';
+      const across = state.placedWords.filter(e=>e.dir==='across').sort((a,b)=>a.num-b.num);
+      const down = state.placedWords.filter(e=>e.dir==='down').sort((a,b)=>a.num-b.num);
+      for (const e of across) {
+        const li = document.createElement('li'); li.innerHTML = `<strong>${e.num}</strong>. ${e.clue} (${e.word.length})`;
+        li.dataset.num = e.num; li.dataset.dir = 'across';
+        li.addEventListener('click', ()=>focusEntry(e));
+        acrossEl.appendChild(li);
+      }
+      for (const e of down) {
+        const li = document.createElement('li'); li.innerHTML = `<strong>${e.num}</strong>. ${e.clue} (${e.word.length})`;
+        li.dataset.num = e.num; li.dataset.dir = 'down';
+        li.addEventListener('click', ()=>focusEntry(e));
+        downEl.appendChild(li);
+      }
+    }
+
+    function focusEntry(e) {
+      // Focus the first cell of the entry
+      const idx = e.dir==='across' ? e.c : e.r;
+      const pos = e.dir==='across' ? {r: e.r, c: e.c} : {r: e.r, c: e.c};
+      const cell = cellInput(pos.r, pos.c);
+      if (cell) cell.focus();
+    }
+
+    function cellInput(r,c){
+      const index = r*state.size + c;
+      const div = gridEl.children[index];
+      return div?.querySelector('input');
+    }
+
+    function onType(ev){
+      const v = ev.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0,1);
+      ev.target.value = v;
+      const r = +ev.target.dataset.r, c = +ev.target.dataset.c;
+      // auto-advance in a sensible direction (prefer across if exists)
+      const next = nextCell(r,c);
+      if (next) next.focus();
+    }
+
+    function onKey(ev){
+      const r = +ev.target.dataset.r, c = +ev.target.dataset.c;
+      const key = ev.key;
+      const move = (rr,cc)=>{ const el = cellInput(rr,cc); if (el) { el.focus(); ev.preventDefault(); }}
+      if (key==='ArrowRight') move(r, c+1);
+      else if (key==='ArrowLeft') move(r, c-1);
+      else if (key==='ArrowDown') move(r+1, c);
+      else if (key==='ArrowUp') move(r-1, c);
+      else if (key==='Backspace' && !ev.target.value) move(r, c-1);
+    }
+
+    function nextCell(r,c){
+      // If part of an across entry, move right; else try down
+      if (c+1<state.size && state.grid[r][c+1] && state.grid[r][c+1].block===false) return cellInput(r,c+1);
+      if (r+1<state.size && state.grid[r+1][c] && state.grid[r+1][c].block===false) return cellInput(r+1,c);
+      return null;
+    }
+
+    function buildPuzzle(category) {
+      const size = +document.getElementById('size').value;
+      initGrid(size);
+      const words = category==='mix' ? mixBank() : BANK[category];
+      const subset = shuffle(words).slice(0, Math.min(words.length, Math.floor(size*0.9))); // limit to avoid overcrowding
+      placeWords(subset);
+      renderGrid();
+      renderClues();
+      catPill.textContent = labelFor(category);
+      status('New puzzle created.');
+    }
+
+    function labelFor(cat){
+      return {python:'Python', cpp:'C++', php:'PHP', javascript:'JavaScript', mix:'Mix'}[cat] || cat;
+    }
+
+    function status(msg, ok=true){
+      statusEl.textContent = msg; statusEl.style.color = ok ? 'var(--ink)' : 'var(--bad)';
+      if (!ok) shake(statusEl);
+    }
+
+    function shake(el){
+      el.animate([{transform:'translateX(0)'},{transform:'translateX(-4px)'},{transform:'translateX(4px)'},{transform:'translateX(0)'}],{duration:220,iterations:1});
+    }
+
+    function shuffle(arr){
+      const a = [...arr];
+      for (let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]] = [a[j],a[i]]; }
+      return a;
+    }
+
+    function clearGridInputs(){
+      gridEl.querySelectorAll('input').forEach(i=> i.value = '');
+      status('Cleared entries.');
+    }
+
+    function checkAnswers(){
+      let wrong = 0, filled=0, total=0;
+      for (let r=0;r<state.size;r++){
+        for (let c=0;c<state.size;c++){
+          const cell = state.grid[r][c];
+          if (!cell.block){
+            total++;
+            const input = cellInput(r,c);
+            const v = (input?.value||'').toLowerCase();
+            if (v) filled++;
+            if (v && v !== cell.ch) { wrong++; input.style.background = '#3b0b0b'; }
+            else if (v) { input.style.background = '#0a1f0a'; }
+            else { input.style.background = '#0f172a'; }
+          }
+        }
+      }
+      if (wrong===0 && filled===total) status('Perfect! Crossword solved ✅', true);
+      else if (wrong===0) status(`So far so good: ${filled}/${total} cells filled`, true);
+      else status(`${wrong} mistake${wrong>1?'s':''} found. Keep going!`, false);
+    }
+
+    function revealMistakes(){
+      let reveals = 0;
+      for (let r=0;r<state.size;r++){
+        for (let c=0;c<state.size;c++){
+          const cell = state.grid[r][c];
+          if (!cell.block){
+            const input = cellInput(r,c);
+            const v = (input?.value||'').toLowerCase();
+            if (v && v !== cell.ch){ input.value = cell.ch.toUpperCase(); input.style.background = '#112233'; reveals++; }
+          }
+        }
+      }
+      status(reveals? `Revealed ${reveals} correction${reveals>1?'s':''}.` : 'Nothing to reveal.');
+    }
+
+    // Wire up controls
+    document.getElementById('newBtn').addEventListener('click', ()=>{
+      const cat = document.getElementById('category').value;
+      buildPuzzle(cat);
+    });
+    document.getElementById('clearBtn').addEventListener('click', clearGridInputs);
+    document.getElementById('checkBtn').addEventListener('click', checkAnswers);
+    document.getElementById('revealBtn').addEventListener('click', revealMistakes);
+
+    // Build initial
+    buildPuzzle('python');
+  </script>
+</body>
+</html>
